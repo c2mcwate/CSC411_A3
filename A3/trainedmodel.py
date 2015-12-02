@@ -1,11 +1,18 @@
 import scipy.io as spio
 import numpy as np
-from skimage import data
-
+from skimage import io
+import time
 def main():
-    test = spio.loadmat("unlabeled_images.mat").get('unlabeled_images')
-    np.reshape(test,(-1,1,32,32))
-    img = data.lena(test)
+    labeled_images_data = spio.loadmat("labeled_images.mat")
+    identities = labeled_images_data.get("tr_identity")
+    faces = labeled_images_data.get("tr_images")
+    faces = faces.transpose(2, 0, 1)
+
+    for i in range(len(faces)):
+        io.imshow(faces[i])
+        io.show()
+
+
 
 
     return
