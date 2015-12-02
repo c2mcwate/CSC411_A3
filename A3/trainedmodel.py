@@ -4,6 +4,10 @@ from skimage import io
 import time
 from sklearn import cross_validation, datasets
 from sklearn import svm, datasets
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+
+
 from pylab import *
 
 def main():
@@ -15,8 +19,16 @@ def main():
     faces = faces.reshape((faces.shape[0], -1))
 
     train_data, valid_data, train_targets, valid_targets, train_ident, valid_ident = splitSet(faces, labels, identities, 0.30)
-    clf = svm.SVC()
-    clf.fit(train_data, train_targets)
+    #best one is 65 with 0.61 rate
+    for i in range(200):
+        if i != 0:
+            model = KNeighborsClassifier(n_neighbors=i)
+            model.fit(train_data, train_targets)
+            predictions = model.predict(valid_data)
+            print(i)
+            print(accuracy_score(predictions, valid_targets))
+
+
 
     return
 
