@@ -35,8 +35,8 @@ def splitSet(data, targets, identities, validRatio):
     valid_data = data[:number]
     train_ident = identities[number:]
     valid_ident =identities[:number]
-    train_targ =  targets[number:],1
-    valid_targ = targets[:number], 1
+    train_targ =  targets[number:].squeeze()
+    valid_targ = targets[:number].squeeze()
 
     #cross_validation.train_test_split(data, targets, test_size=0.4,random_state=0)
     return train_data, valid_data, train_targ, valid_targ, train_ident, valid_ident
