@@ -2,18 +2,16 @@ import scipy.io as spio
 import numpy as np
 from skimage import io
 from time import *
-from sklearn import cross_validation, datasets
+from sklearn import cross_validation, datasets, svm
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.cross_validation import KFold
+from sklearn.cross_validation import StratifiedKFold, StratifiedShuffleSplit, LabelKFold, train_test_split
+
+
 from sklearn.linear_model import SGDClassifier
 from pylab import *
-from sklearn.ensemble import AdaBoostRegressor
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.decomposition import RandomizedPCA, KernelPCA, PCA, IncrementalPCA
-from sklearn.grid_search import GridSearchCV
-
+from sklearn import preprocessing
 def knn():
     labeled_images_data = spio.loadmat("labeled_images.mat")
     labels = labeled_images_data.get("tr_labels")
@@ -76,33 +74,13 @@ def SGDClassifier():
 
     return
 
-def Ada():
-    labeled_images_data = spio.loadmat("labeled_images.mat")
-    labels = labeled_images_data.get("tr_labels")
-    identities = labeled_images_data.get("tr_identity")
-    faces = labeled_images_data.get("tr_images")
-    faces = faces.transpose(2, 0, 1)
-    faces = faces.reshape((faces.shape[0], -1))
-    train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.3)
-    runs = np.zeros(10)
-    rng = np.random.RandomState(1)
-    for i in range(len(runs)):
-        model = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4), n_estimators=300, random_state=rng)
-        model.fit(train_data, train_targets)
-        #predict = model.predict(test_data)
-        score = model.score(test_data, test_targets)
-        runs[i]=score
-        if score > 0.7:
-            good_model = model
-        print(score)
-    print(runs)
-    print(good_model.score(test_data, test_targets))
 
-    return
 
 def SVM():
     labeled_images_data = spio.loadmat("labeled_images.mat")
     unlabeled_images_data = spio.loadmat("unlabeled_images.mat")
+    public_test_data = spio.loadmat("public_test_images.mat")
+    faces_test = public_test_data.get("public_test_images")
     unlabeled_faces = unlabeled_images_data.get("unlabeled_images")
     labels = labeled_images_data.get("tr_labels")
     identities = labeled_images_data.get("tr_identity")
@@ -113,21 +91,33 @@ def SVM():
     unlabeled_faces = unlabeled_faces.reshape((unlabeled_faces.shape[0], -1))
 
     train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.2)
-    runs = np.zeros(10)
-    t0 = time()
-    pca = PCA(n_components=7).fit(unlabeled_faces)
-    train_data_pca = pca.transform(train_data)
-    test_data_pca = pca.transform(test_data)
+    labels_s = labels.squeeze()
+    test = np.zeros(100)
 
-    #param_grid = {'C': [1e3, 5e3, 1e4, 5e4, 1e5],
-             # 'gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1], }
-    #clf = GridSearchCV(SVC(verbose=True, kernel='rbf'), param_grid)
-    clf = SVC(verbose=True, kernel='rbf', C=1000, gamma=0.005)
-    clf = clf.fit(train_data_pca, train_targets)
-    print(clf.score(test_data_pca, test_targets))
-    #model = KNeighborsClassifier(n_neighbors=65)
-    #model.fit(train_data_pca, train_targets)
-    #print(model.score(test_data_pca,test_targets))
+    #train_data, test_data, train_targets, test_targets, train_ident, test_ident = train_test_split(faces, labels_s, identities, train_size=0.9)
+    #test = np.intersect1d(train_ident, test_ident)
+
+
+
+
+
+
+    #pca = PCA(n_components=7).fit(unlabeled_faces)
+    #train_data_pca = pca.transform(train_data)
+    #test_data_pca = pca.transform(test_data)
+
+    scaler = preprocessing.StandardScaler().fit(unlabeled_faces)
+    scaled_train_data = scaler.transform(train_data)
+    scaled_test_data = scaler.transform(test_data)
+
+    normalize_train_data = preprocessing.normalize(scaled_train_data, norm='l1')
+    normalize_test_data = preprocessing.normalize(scaled_test_data, norm='l1')
+
+
+    model = SVC(kernel='rbf', C=1000, gamma=0.005)
+    model.fit(normalize_train_data, train_targets)
+    print(model.score(normalize_test_data, test_targets))
+
 
 
     return
