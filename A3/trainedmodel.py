@@ -7,12 +7,13 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import StratifiedKFold, StratifiedShuffleSplit, LabelKFold, train_test_split
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, RandomizedPCA
 import pickle
 from sklearn.linear_model import SGDClassifier
 from pylab import *
 from sklearn import preprocessing
 
+from skimage import feature
 
 def save_object(obj, filename):
 
@@ -67,7 +68,7 @@ def SGDClassifier():
     faces = labeled_images_data.get("tr_images")
     faces = faces.transpose(2, 0, 1)
     faces = faces.reshape((faces.shape[0], -1))
-    train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.3)
+    train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.2)
     runs = np.zeros(10)
     for i in range(len(runs)):
         model = SGDClassifier(loss="log", penalty="l2", n_iter=500, learning_rate='optimal')
@@ -100,7 +101,7 @@ def SVM():
     unlabeled_faces = unlabeled_faces.reshape((unlabeled_faces.shape[0], -1))
     faces_test = faces_test.transpose(2, 0, 1)
     faces_test = faces_test.reshape((faces_test.shape[0], -1))
-    train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.2)
+    #train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.2)
     labels_s = labels.squeeze()
 
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = train_test_split(faces, labels_s, identities, train_size=0.9)
@@ -148,35 +149,58 @@ def SVM():
     master_array = np.delete(master_array,0,1)
     master_faces = master_array
 
-    train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces, master_labels, master_ident, 0.2)
+    #train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces, master_labels, master_ident, 0.1)
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(faces, labels_s, identities, 0.3)
 
-    common_idents_array = np.intersect1d(train_ident, test_ident)
+    #common_idents_array = np.intersect1d(train_ident, test_ident)
 
 
+    n_eigenfaces = 121
+
+    # print("-   Performing PCA reduction    -")
+    # pca = RandomizedPCA(n_components=n_eigenfaces, whiten=True).fit(unlabeled_faces)
+    # save_object(pca, "pca")
+    # pca = load_object("pca")
+    # train_data = pca.transform(train_data)
+    # test_data = pca.transform(test_data)
+    # print("-   Finished PCA reduction    -")
+    #
+    # print('PCA captures {:.2f} percent of the variance in the dataset'.format(pca.explained_variance_ratio_.sum() * 100))
+
+    tuples = kfold(master_faces,master_labels,master_ident, 25)
+    success_rates_train = []
+    success_rate_valid = []
+
+    for tuple in tuples:
+        train_data, test_data, train_targets, test_targets, train_ident, test_ident=tuple
+        #train_data = pca.transform(train_data)
+        #test_data = pca.transform(test_data)
+
+        model = svm.SVC( gamma=0.5, C=1, kernel='linear')
+        model.fit(train_data, train_targets)
 
 
+        #Train
+        print("Training :")
+        score = model.score(train_data, train_targets)
+        print(score)
+        success_rates_train.append(score)
 
-    #pca = PCA(n_components=100).fit(unlabeled_faces)
-    #train_data_pca = pca.transform(train_data)
-    #test_data_pca = pca.transform(test_data)
-    #faces_test_pca = pca.transform(faces_test)
+        #Validation
+        print("Validation :")
+        score = model.score(test_data, test_targets)
+        print(score)
+        success_rate_valid.append(score)
 
+    print("Training rates :")
+    print(success_rates_train)
+    print("Training average :")
+    print(np.average(success_rates_train))
 
-
-
-    model = svm.SVC(verbose=True, gamma=1, C=1, kernel='linear')
-    model.fit(train_data, train_targets)
-
-
-    #Train
-    print("Training :")
-    print(model.score(train_data, train_targets))
-
-
-    #Validation
-    print("Validation :")
-    print(model.score(test_data, test_targets))
+    print("Validation rates :")
+    print(success_rate_valid)
+    print("Validation average :")
+    print(np.average(success_rate_valid))
 
     return
 
@@ -204,6 +228,21 @@ def splitSet(data, targets, identities, validRatio):
     #cross_validation.train_test_split(data, targets, test_size=0.4,random_state=0)
     return train_data, test_data, train_targ, test_targ, train_ident, test_ident
 
+def kfold(data, targets, identities, folds):
+    data_split = np.split(data, folds)
+    targets_split = np.split(targets, folds)
+    identities_split = np.split(identities, folds)
+
+    tuples = []
+    for i in range(folds):
+        valid_data = data_split[i]
+        valid_targets = targets_split[i]
+        valid_ident = identities_split[i]
+        train_data = np.concatenate(tuple(map(tuple, np.delete(data_split,i, 0))))
+        train_targets = np.concatenate(tuple(map(tuple, np.delete(targets_split,i, 0))))
+        train_ident = np.concatenate(tuple(map(tuple, np.delete(identities_split,i, 0))))
+        tuples.append((train_data,valid_data , train_targets, valid_targets, train_ident, valid_ident))
+    return tuples
 
 if __name__ == "__main__":
     #knn()
