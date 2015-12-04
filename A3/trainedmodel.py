@@ -167,14 +167,14 @@ def SVM():
     #
     # print('PCA captures {:.2f} percent of the variance in the dataset'.format(pca.explained_variance_ratio_.sum() * 100))
 
-    tuples = kfold(master_faces,master_labels,master_ident, 25)
+    tuples = kfold(master_faces,master_labels,master_ident, 39)
     success_rates_train = []
     success_rate_valid = []
 
     for tuple in tuples:
-        train_data, test_data, train_targets, test_targets, train_ident, test_ident=tuple
-        #train_data = pca.transform(train_data)
-        #test_data = pca.transform(test_data)
+        train_data, test_data, train_targets, test_targets, train_ident, test_ident= tuple
+        # train_data = pca.transform(train_data)
+        # test_data = pca.transform(test_data)
 
         model = svm.SVC( gamma=0.5, C=1, kernel='linear')
         model.fit(train_data, train_targets)
