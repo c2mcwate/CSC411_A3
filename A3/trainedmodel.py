@@ -172,7 +172,7 @@ def SVM(submit):
         test_predictions = np.concatenate([test_predictions, hidden_guesses])
         test_predictions = test_predictions.astype(int)
         csv = np.column_stack((ascending, test_predictions))
-        np.savetxt("test_faces_c50.csv", csv, delimiter=",")
+        np.savetxt("test_faces_normal.csv", csv, delimiter=",")
     return
 
 
@@ -410,5 +410,5 @@ def kfold(data, targets, identities, folds):
 if __name__ == "__main__":
     #knn()
     #semi_supervised()
-    SVM(False)
+    SVM(True)
     #model3(False)
