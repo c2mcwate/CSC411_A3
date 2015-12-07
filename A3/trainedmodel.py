@@ -1,6 +1,6 @@
 import scipy.io as spio
 import numpy as np
-from skimage import io
+from skimage import data, exposure, img_as_float, feature
 from time import *
 from sklearn import cross_validation, datasets, svm, grid_search
 from sklearn.svm import SVC
@@ -117,7 +117,13 @@ def SVM(submit):
 
 
     # PUT YOUR PROCESSING HERE
-    tuples = kfold(master_faces,master_labels,master_ident, 13)
+
+    temp_master_faces = exposure.adjust_gamma(master_faces,2)
+
+    #This line causes bug
+    #master_faces_corrected = feature.blob_dog(temp_master_faces)
+
+    tuples = kfold(master_faces_corrected,master_labels,master_ident, 13)
     success_rates_train = []
     success_rate_valid = []
     if not submit:
@@ -154,10 +160,10 @@ def SVM(submit):
         print("Validation average :")
         print(np.average(success_rate_valid))
     if submit:
-        train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces, master_labels, master_ident, 0.2)
+        train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces_corrected, master_labels, master_ident, 0.2)
         classification = svm.SVC( gamma=0.5, C=1, kernel='poly')
         model = BaggingClassifier(classification, n_estimators=20, bootstrap=True, verbose=1)
-        model.fit(master_faces, master_labels)
+        model.fit(master_faces_corrected, master_labels)
         test_predictions = model.predict(faces_test)
 
 
