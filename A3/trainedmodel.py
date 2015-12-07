@@ -18,14 +18,20 @@ from sklearn import tree
 from sklearn.ensemble import BaggingClassifier
 from sklearn import tree
 from sklearn import preprocessing
+from skimage.filters.rank import *
+from cv2 import GaussianBlur
+from skimage.morphology import disk
+from skimage.exposure import *
+from skimage import filters
+from skimage.color.adapt_rgb import adapt_rgb, each_channel, hsv_value
+
+
 def save_object(obj, filename):
 
         pickle.dump(obj, open(filename, "wb"))
 
 def load_object(filename):
     return pickle.load(open(filename, "rb"))
-
-
 
 def SVM(submit):
     labeled_images_data = spio.loadmat("labeled_images.mat")
@@ -37,9 +43,8 @@ def SVM(submit):
     identities = labeled_images_data.get("tr_identity")
     faces = labeled_images_data.get("tr_images")
     faces = faces.transpose(2, 0, 1)
-    # faces = hog(faces)
-
     faces = faces.reshape((faces.shape[0], -1))
+    faces = preprocessing.normalize(faces, norm='l2')
 
     unlabeled_faces = unlabeled_faces.transpose(2, 0, 1)
     unlabeled_faces = unlabeled_faces.reshape((unlabeled_faces.shape[0], -1))
@@ -50,53 +55,52 @@ def SVM(submit):
 
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = train_test_split(faces, labels_s, identities, train_size=0.9)
     #test = np.intersect1d(train_ident, test_ident)
-    #
-    # small_faces = faces
-    # small_identities = identities
-    # small_labels = labels_s
-    # aug = np.column_stack((small_identities, small_labels,small_faces))
-    #
-    # one_array = np.array(filter(lambda row: row[1]==1, aug))
-    # two_array = np.array(filter(lambda row: row[1]==2, aug))
-    # three_array = np.array(filter(lambda row: row[1]==3, aug))
-    # four_array = np.array(filter(lambda row: row[1]==4, aug))
-    # five_array = np.array(filter(lambda row: row[1]==5, aug))
-    # six_array = np.array(filter(lambda row: row[1]==6, aug))
-    # seven_array = np.array(filter(lambda row: row[1]==7, aug))
-    #
-    # label_arrays = [one_array, two_array, three_array, four_array, five_array, six_array, seven_array]
-    #
-    # for j in range(len(label_arrays)):
-    #     label_arrays[j] = label_arrays[j][label_arrays[j][:,0].argsort()[::-1]]
-    #
-    #
-    # master_array = aug.copy()
-    #
-    # #save_object(label_arrays, "label_arrays")
-    # # label_arrays = load_object("label_arrays")
-    #
-    # i = 0
-    # while i < len(faces):
-    #     for j in range(len(label_arrays)):
-    #         if i < len(faces) and len(label_arrays[j]>0):
-    #             if(j==6):
-    #                  master_array[i] = label_arrays[j][0]
-    #                  label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
-    #                  i = i+1
-    #             master_array[i] = label_arrays[j][0]
-    #             label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
-    #             #label_arrays[j] = np.zeros(3)
-    #             i = i+1
-    # save_object(master_array, "master_canny_100-201")
-    #
-    master_array = load_object("master")
+
+    small_faces = faces
+    small_identities = identities
+    small_labels = labels_s
+    aug = np.column_stack((small_identities, small_labels,small_faces))
+
+    one_array = np.array(filter(lambda row: row[1]==1, aug))
+    two_array = np.array(filter(lambda row: row[1]==2, aug))
+    three_array = np.array(filter(lambda row: row[1]==3, aug))
+    four_array = np.array(filter(lambda row: row[1]==4, aug))
+    five_array = np.array(filter(lambda row: row[1]==5, aug))
+    six_array = np.array(filter(lambda row: row[1]==6, aug))
+    seven_array = np.array(filter(lambda row: row[1]==7, aug))
+
+    label_arrays = [one_array, two_array, three_array, four_array, five_array, six_array, seven_array]
+
+    for j in range(len(label_arrays)):
+        label_arrays[j] = label_arrays[j][label_arrays[j][:,0].argsort()[::-1]]
+
+
+    master_array = aug.copy()
+
+    #save_object(label_arrays, "label_arrays")
+    # label_arrays = load_object("label_arrays")
+
+    i = 0
+    while i < len(faces):
+        for j in range(len(label_arrays)):
+            if i < len(faces) and len(label_arrays[j]>0):
+                if(j==6):
+                     master_array[i] = label_arrays[j][0]
+                     label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
+                     i = i+1
+                master_array[i] = label_arrays[j][0]
+                label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
+                #label_arrays[j] = np.zeros(3)
+                i = i+1
+    #save_object(master_array, "master_canny_100-201")
+
+    # master_array = load_object("master")
 
     master_ident = master_array[:,0]
     master_array = np.delete(master_array,0,1)
     master_labels = master_array[:,0]
     master_array = np.delete(master_array,0,1)
     master_faces = master_array
-    mater_faces = preprocessing.normalize(master_faces, norm='l2')
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces, master_labels, master_ident, 0.1)
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(faces, labels_s, identities, 0.3)
 
@@ -117,13 +121,34 @@ def SVM(submit):
 
 
     # PUT YOUR PROCESSING HERE
+    #Reshape
+    master_faces = master_faces.reshape(len(master_faces), 32, 32)
+    plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
+    plt.title('Normal'), plt.xticks([]), plt.yticks([])
+    plt.show()
 
-    temp_master_faces = exposure.adjust_gamma(master_faces,2)
+    #Gamma correction
+    master_faces = all_gamma(master_faces)
+    plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
+    plt.title('Gamma correction'), plt.xticks([]), plt.yticks([])
+    plt.show()
 
-    #This line causes bug
-    #master_faces_corrected = feature.blob_dog(temp_master_faces)
+    #Dog filter
+    master_faces = GaussianBlur(master_faces,(3,3), 1, 1)
 
-    tuples = kfold(master_faces_corrected,master_labels,master_ident, 13)
+    plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
+    plt.title('Dog Filter'), plt.xticks([]), plt.yticks([])
+    plt.show()
+
+    #Equalization of variance TODO
+    plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
+    plt.title('Last step'), plt.xticks([]), plt.yticks([])
+    plt.show()
+
+    #Reshape
+    master_faces = master_faces.reshape((master_faces.shape[0], -1))
+
+    tuples = kfold(master_faces,master_labels,master_ident, 13)
     success_rates_train = []
     success_rate_valid = []
     if not submit:
@@ -160,10 +185,9 @@ def SVM(submit):
         print("Validation average :")
         print(np.average(success_rate_valid))
     if submit:
-        train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces_corrected, master_labels, master_ident, 0.2)
         classification = svm.SVC( gamma=0.5, C=1, kernel='poly')
         model = BaggingClassifier(classification, n_estimators=20, bootstrap=True, verbose=1)
-        model.fit(master_faces_corrected, master_labels)
+        model.fit(master_faces, master_labels)
         test_predictions = model.predict(faces_test)
 
 
@@ -180,6 +204,15 @@ def SVM(submit):
         csv = np.column_stack((ascending, test_predictions))
         np.savetxt("test_faces_normal.csv", csv, delimiter=",")
     return
+
+
+
+def all_gamma(array):
+    for i in range(len(array)):
+        array[i] = exposure.adjust_gamma(array[i], 0.001)
+    return array
+
+
 
 
 def KNN(submit):
