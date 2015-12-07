@@ -2,6 +2,8 @@ import scipy.io as spio
 import numpy as np
 from skimage import data, exposure, img_as_float, feature
 from time import *
+import scipy
+import scipy.ndimage
 from sklearn import cross_validation, datasets, svm, grid_search
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -12,7 +14,7 @@ import pickle
 from sklearn.linear_model import SGDClassifier
 from pylab import *
 from skimage.feature import hog
-import cv2
+#import cv2
 from sklearn.semi_supervised import LabelSpreading, LabelPropagation
 from sklearn import tree
 from sklearn.ensemble import BaggingClassifier
@@ -134,7 +136,7 @@ def SVM(submit):
     plt.show()
 
     #Dog filter
-    #master_faces = GaussianBlur(master_faces,(3,3), 1, 1)
+    master_faces -= scipy.ndimage.filters.gaussian_filter(master_faces, 0.2)
 
     plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
     plt.title('Dog Filter'), plt.xticks([]), plt.yticks([])
