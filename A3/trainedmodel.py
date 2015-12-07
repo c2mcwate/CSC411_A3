@@ -19,7 +19,7 @@ from sklearn.ensemble import BaggingClassifier
 from sklearn import tree
 from sklearn import preprocessing
 from skimage.filters.rank import *
-from cv2 import GaussianBlur
+#from cv2 import GaussianBlur
 from skimage.morphology import disk
 from skimage.exposure import *
 from skimage import filters
@@ -134,7 +134,7 @@ def SVM(submit):
     plt.show()
 
     #Dog filter
-    master_faces = GaussianBlur(master_faces,(3,3), 1, 1)
+    #master_faces = GaussianBlur(master_faces,(3,3), 1, 1)
 
     plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
     plt.title('Dog Filter'), plt.xticks([]), plt.yticks([])
