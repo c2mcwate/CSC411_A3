@@ -11,89 +11,19 @@ from sklearn.decomposition import PCA, RandomizedPCA
 import pickle
 from sklearn.linear_model import SGDClassifier
 from pylab import *
-from sklearn import preprocessing
 from skimage.feature import hog
 import cv2
 from sklearn.semi_supervised import LabelSpreading, LabelPropagation
 from sklearn import tree
 from sklearn.ensemble import BaggingClassifier
-SZ=20
-bin_n = 16 # Number of bins
-
-svm_params = dict( kernel_type = cv2.SVM_LINEAR,
-                    svm_type = cv2.SVM_C_SVC,
-                    C=2.67, gamma=5.383 )
-
-affine_flags = cv2.WARP_INVERSE_MAP|cv2.INTER_LINEAR
-
+from sklearn import tree
+from sklearn import preprocessing
 def save_object(obj, filename):
 
         pickle.dump(obj, open(filename, "wb"))
 
 def load_object(filename):
     return pickle.load(open(filename, "rb"))
-
-def knn():
-    labeled_images_data = spio.loadmat("labeled_images.mat")
-    labels = labeled_images_data.get("tr_labels")
-    identities = labeled_images_data.get("tr_identity")
-    faces = labeled_images_data.get("tr_images")
-    faces = faces.transpose(2, 0, 1)
-    faces = faces.reshape((faces.shape[0], -1))
-    train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.3)
-    #best one is 65 with 0.61 rate
-    kf = KFold(len(train_data), n_folds=4)
-
-    k_values = [7,22,37,50,64]
-    k_values_class = np.zeros(5)
-    for i in range(len(k_values)):
-        k=0
-        cross_val_accuracy = np.zeros(4)
-        for train_index, test_index in kf:
-              #print("TRAIN:", train_index, "TEST:", test_index)
-              train_data_fold, valid_data_fold = train_data[train_index], train_data[test_index]
-              train_targets_fold, valid_targets_fold = train_targets[train_index], train_targets[test_index]
-              model = KNeighborsClassifier(n_neighbors=k_values[i])
-              model.fit(train_data_fold, train_targets_fold)
-
-              predictions = model.predict(valid_data_fold)
-              if k<=3:
-                cross_val_accuracy[k]= accuracy_score(predictions, valid_targets_fold)
-              k=k+1
-
-              #print("Fold ")
-              #print(k)
-              #print(accuracy_score(predictions, valid_targets_fold))
-
-
-        print(np.average(cross_val_accuracy))
-        k_values_class[i]=np.average(cross_val_accuracy)
-    print(k_values_class)
-
-    return
-
-def sgdc():
-    labeled_images_data = spio.loadmat("labeled_images.mat")
-    labels = labeled_images_data.get("tr_labels")
-    identities = labeled_images_data.get("tr_identity")
-    faces = labeled_images_data.get("tr_images")
-    faces = faces.transpose(2, 0, 1)
-    faces = faces.reshape((faces.shape[0], -1))
-    train_data, test_data, train_targets, test_targets, train_ident, target_ident = splitSet(faces, labels, identities, 0.2)
-    runs = np.zeros(10)
-    for i in range(len(runs)):
-        model = SGDClassifier(loss="log", penalty="l2", n_iter=500, learning_rate='optimal')
-        model.fit(train_data, train_targets)
-        #predict = model.predict(test_data)
-        score = model.score(test_data, test_targets)
-        runs[i]=score
-        if score > 0.7:
-            good_model = model
-        print(score)
-    print(runs)
-    print(good_model.score(test_data, test_targets))
-
-    return
 
 
 
@@ -120,7 +50,7 @@ def SVM(submit):
 
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = train_test_split(faces, labels_s, identities, train_size=0.9)
     #test = np.intersect1d(train_ident, test_ident)
-
+    #
     # small_faces = faces
     # small_identities = identities
     # small_labels = labels_s
@@ -149,12 +79,16 @@ def SVM(submit):
     # while i < len(faces):
     #     for j in range(len(label_arrays)):
     #         if i < len(faces) and len(label_arrays[j]>0):
+    #             if(j==6):
+    #                  master_array[i] = label_arrays[j][0]
+    #                  label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
+    #                  i = i+1
     #             master_array[i] = label_arrays[j][0]
     #             label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
     #             #label_arrays[j] = np.zeros(3)
     #             i = i+1
-    # # save_object(master_array, "master_canny_100-201")
-    # #
+    # save_object(master_array, "master_canny_100-201")
+    #
     master_array = load_object("master")
 
     master_ident = master_array[:,0]
@@ -162,7 +96,7 @@ def SVM(submit):
     master_labels = master_array[:,0]
     master_array = np.delete(master_array,0,1)
     master_faces = master_array
-
+    mater_faces = preprocessing.normalize(master_faces, norm='l2')
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces, master_labels, master_ident, 0.1)
     #train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(faces, labels_s, identities, 0.3)
 
@@ -174,14 +108,16 @@ def SVM(submit):
     # print("-   Performing PCA reduction    -")
     # pca = RandomizedPCA(n_components=n_eigenfaces, whiten=True).fit(unlabeled_faces)
     # save_object(pca, "pca")
-    pca = load_object("pca")
+    # pca = load_object("pca")
     # #train_data = pca.transform(train_data)
     # #test_data = pca.transform(test_data)
     # print("-   Finished PCA reduction    -")
     #
     # print('PCA captures {:.2f} percent of the variance in the dataset'.format(pca.explained_variance_ratio_.sum() * 100))
 
-    tuples = kfold(master_faces,master_labels,master_ident, 9)
+
+    # PUT YOUR PROCESSING HERE
+    tuples = kfold(master_faces,master_labels,master_ident, 13)
     success_rates_train = []
     success_rate_valid = []
     if not submit:
@@ -189,8 +125,9 @@ def SVM(submit):
             train_data, test_data, train_targets, test_targets, train_ident, test_ident= tuple
             # train_data = pca.transform(train_data)
             # test_data = pca.transform(test_data)
-            classifier = svm.SVC( gamma=0.5, C=1, kernel='linear')
-            model = BaggingClassifier(classifier, n_estimators=10, bootstrap=True, verbose=1)
+
+            model = svm.SVC( gamma=0.5, C=1, kernel='poly')
+            #model = BaggingClassifier(classifier, n_estimators=10, bootstrap=True, verbose=1)
             model.fit(train_data, train_targets)
 
 
@@ -219,7 +156,7 @@ def SVM(submit):
     if submit:
         train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces, master_labels, master_ident, 0.2)
         classification = svm.SVC( gamma=0.5, C=1, kernel='poly')
-        model = BaggingClassifier(classification, n_estimators=20, max_features=10, bootstrap=True, verbose=1)
+        model = BaggingClassifier(classification, n_estimators=20, bootstrap=True, verbose=1)
         model.fit(master_faces, master_labels)
         test_predictions = model.predict(faces_test)
 
@@ -235,16 +172,204 @@ def SVM(submit):
         test_predictions = np.concatenate([test_predictions, hidden_guesses])
         test_predictions = test_predictions.astype(int)
         csv = np.column_stack((ascending, test_predictions))
-        np.savetxt("test_faces_est20_max10.csv", csv, delimiter=",")
+        np.savetxt("test_faces_c50.csv", csv, delimiter=",")
     return
 
 
+def KNN(submit):
+    labeled_images_data = spio.loadmat("labeled_images.mat")
+    unlabeled_images_data = spio.loadmat("unlabeled_images.mat")
+    public_test_data = spio.loadmat("public_test_images.mat")
+    faces_test = public_test_data.get("public_test_images")
+    unlabeled_faces = unlabeled_images_data.get("unlabeled_images")
+    labels = labeled_images_data.get("tr_labels")
+    identities = labeled_images_data.get("tr_identity")
+    faces = labeled_images_data.get("tr_images")
+    faces = faces.transpose(2, 0, 1)
+    faces = faces.reshape((faces.shape[0], -1))
+    unlabeled_faces = unlabeled_faces.transpose(2, 0, 1)
+    unlabeled_faces = unlabeled_faces.reshape((unlabeled_faces.shape[0], -1))
+    faces_test = faces_test.transpose(2, 0, 1)
+    faces_test = faces_test.reshape((faces_test.shape[0], -1))
+    labels_s = labels.squeeze()
 
-def med_blur(data):
-    for i in range(len(data)):
-        data[i] = cv2.medianBlur(data[i],5)
-    return data
 
+    master_array = load_object("master")
+
+    master_ident = master_array[:,0]
+    master_array = np.delete(master_array,0,1)
+    master_labels = master_array[:,0]
+    master_array = np.delete(master_array,0,1)
+    master_faces = master_array
+
+
+
+    n_eigenfaces = 121
+    # print("-   Performing PCA reduction    -")
+    # pca = RandomizedPCA(n_components=n_eigenfaces, whiten=True).fit(unlabeled_faces)
+    # save_object(pca, "pca")
+    pca = load_object("pca")
+    # #train_data = pca.transform(train_data)
+    # #test_data = pca.transform(test_data)
+    # print("-   Finished PCA reduction    -")
+    #
+    # print('PCA captures {:.2f} percent of the variance in the dataset'.format(pca.explained_variance_ratio_.sum() * 100))
+
+    tuples = kfold(master_faces,master_labels,master_ident, 13)
+    success_rates_train = []
+    success_rate_valid = []
+    if not submit:
+        for tuple in tuples:
+            train_data, test_data, train_targets, test_targets, train_ident, test_ident= tuple
+            train_data = pca.transform(train_data)
+            test_data = pca.transform(test_data)
+
+            model = KNeighborsClassifier(n_neighbors=15, weights='distance', algorithm='auto')
+            #model = BaggingClassifier(classifier, n_estimators=10, bootstrap=True, verbose=1)
+            model.fit(train_data, train_targets)
+
+
+            #Train
+            score = model.score(train_data, train_targets)
+            valid_score = model.score(test_data, test_targets)
+
+            print("Training :")
+            print(score)
+            success_rates_train.append(score)
+
+            #Validation
+            print("Validation :")
+            print(valid_score)
+            success_rate_valid.append(valid_score)
+
+        print("Training rates :")
+        print(success_rates_train)
+        print("Training average :")
+        print(np.average(success_rates_train))
+
+        print("Validation rates :")
+        print(success_rate_valid)
+        print("Validation average :")
+        print(np.average(success_rate_valid))
+    if submit:
+        train_data, test_data, train_targets, test_targets, train_ident, test_ident = splitSet(master_faces, master_labels, master_ident, 0.2)
+        classification = svm.SVC( gamma=0.5, C=1, kernel='poly')
+        model = BaggingClassifier(classification, n_estimators=30, bootstrap=True, verbose=1)
+        model.fit(master_faces, master_labels)
+        test_predictions = model.predict(faces_test)
+
+
+        #Test predictions
+
+        ascending = np.zeros(1253)
+
+        for i in range(len(ascending)):
+             ascending[i]=i+1
+        ascending = ascending.astype(int)
+        hidden_guesses = -1*np.ones(1253-len(test_predictions))
+        test_predictions = np.concatenate([test_predictions, hidden_guesses])
+        test_predictions = test_predictions.astype(int)
+        csv = np.column_stack((ascending, test_predictions))
+        np.savetxt("test_faces_est30.csv", csv, delimiter=",")
+    return
+
+def model3(submit):
+    labeled_images_data = spio.loadmat("labeled_images.mat")
+    unlabeled_images_data = spio.loadmat("unlabeled_images.mat")
+    public_test_data = spio.loadmat("public_test_images.mat")
+    faces_test = public_test_data.get("public_test_images")
+    unlabeled_faces = unlabeled_images_data.get("unlabeled_images")
+    labels = labeled_images_data.get("tr_labels")
+    identities = labeled_images_data.get("tr_identity")
+    faces = labeled_images_data.get("tr_images")
+    faces = faces.transpose(2, 0, 1)
+    faces = faces.reshape((faces.shape[0], -1))
+    unlabeled_faces = unlabeled_faces.transpose(2, 0, 1)
+    unlabeled_faces = unlabeled_faces.reshape((unlabeled_faces.shape[0], -1))
+    faces_test = faces_test.transpose(2, 0, 1)
+    faces_test = faces_test.reshape((faces_test.shape[0], -1))
+    labels_s = labels.squeeze()
+
+
+    master_array = load_object("master")
+
+    master_ident = master_array[:,0]
+    master_array = np.delete(master_array,0,1)
+    master_labels = master_array[:,0]
+    master_array = np.delete(master_array,0,1)
+    master_faces = master_array
+
+
+
+    # n_eigenfaces = 121
+    # print("-   Performing PCA reduction    -")
+    # pca = RandomizedPCA(n_components=n_eigenfaces, whiten=True).fit(unlabeled_faces)
+    # save_object(pca, "pca")
+
+    pca = load_object("pca")
+    # train_data = pca.transform(train_data)
+    # test_data = pca.transform(test_data)
+    #
+    print("-   Finished PCA reduction    -")
+    print('PCA captures {:.2f} percent of the variance in the dataset'.format(pca.explained_variance_ratio_.sum() * 100))
+
+    tuples = kfold(master_faces,master_labels,master_ident, 13)
+    success_rates_train = []
+    success_rate_valid = []
+    if not submit:
+        for tuple in tuples:
+            train_data, test_data, train_targets, test_targets, train_ident, test_ident= tuple
+            train_data = pca.transform(train_data)
+            test_data = pca.transform(test_data)
+
+            model = SGDClassifier(loss="log", penalty="l2", n_iter=3000, learning_rate='optimal')
+            #model = BaggingClassifier(classifier, n_estimators=10, bootstrap=True, verbose=1)
+            model.fit(train_data, train_targets)
+
+
+            #Train
+            score = model.score(train_data, train_targets)
+            valid_score = model.score(test_data, test_targets)
+
+            print("Training :")
+            print(score)
+            success_rates_train.append(score)
+
+            #Validation
+            print("Validation :")
+            print(valid_score)
+            success_rate_valid.append(valid_score)
+
+        print("Training rates :")
+        print(success_rates_train)
+        print("Training average :")
+        print(np.average(success_rates_train))
+
+        print("Validation rates :")
+        print(success_rate_valid)
+        print("Validation average :")
+        print(np.average(success_rate_valid))
+    if submit:
+        master_faces = pca.transform(master_faces)
+        classification=SGDClassifier(loss="log", penalty="l2", n_iter=1000, learning_rate='optimal', verbose=True)
+        model = BaggingClassifier(classification, n_estimators=10, bootstrap=True, verbose=1)
+        model.fit(master_faces, master_labels)
+        test_predictions = model.predict(faces_test)
+
+
+        #Test predictions
+
+        ascending = np.zeros(1253)
+
+        for i in range(len(ascending)):
+             ascending[i]=i+1
+        ascending = ascending.astype(int)
+        hidden_guesses = -1*np.ones(1253-len(test_predictions))
+        test_predictions = np.concatenate([test_predictions, hidden_guesses])
+        test_predictions = test_predictions.astype(int)
+        csv = np.column_stack((ascending, test_predictions))
+        np.savetxt("sgdc.csv", csv, delimiter=",")
+    return
 def splitSet(data, targets, identities, validRatio):
     "Takes a set of data and returns a validation set and training set"
     number = np.around(len(data)*validRatio)
@@ -285,4 +410,5 @@ def kfold(data, targets, identities, folds):
 if __name__ == "__main__":
     #knn()
     #semi_supervised()
-    SVM(True)
+    SVM(False)
+    #model3(False)
