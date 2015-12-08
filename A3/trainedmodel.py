@@ -4,6 +4,9 @@ from skimage import data, exposure, img_as_float, feature
 from time import *
 import scipy
 import scipy.ndimage
+import numpy.ma as ma
+from skimage import exposure
+from skimage.filters import rank
 from sklearn import cross_validation, datasets, svm, grid_search
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -46,7 +49,6 @@ def SVM(submit):
     faces = labeled_images_data.get("tr_images")
     faces = faces.transpose(2, 0, 1)
     faces = faces.reshape((faces.shape[0], -1))
-    faces = preprocessing.normalize(faces, norm='l2')
 
     unlabeled_faces = unlabeled_faces.transpose(2, 0, 1)
     unlabeled_faces = unlabeled_faces.reshape((unlabeled_faces.shape[0], -1))
@@ -124,6 +126,8 @@ def SVM(submit):
 
     # PUT YOUR PROCESSING HERE
     #Reshape
+    master_faces = preprocessing.normalize(master_faces, norm='l2')
+
     master_faces = master_faces.reshape(len(master_faces), 32, 32)
     plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
     plt.title('Normal'), plt.xticks([]), plt.yticks([])
@@ -137,14 +141,14 @@ def SVM(submit):
 
     #Dog filter
     master_faces -= scipy.ndimage.filters.gaussian_filter(master_faces, 0.2)
-
     plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
     plt.title('Dog Filter'), plt.xticks([]), plt.yticks([])
     plt.show()
 
     #Equalization of variance TODO
+    master_faces = EQ(master_faces)
     plt.subplot(122),plt.imshow(master_faces[0], cmap='gray')
-    plt.title('Last step'), plt.xticks([]), plt.yticks([])
+    plt.title('Equalization'), plt.xticks([]), plt.yticks([])
     plt.show()
 
     #Reshape
@@ -211,7 +215,13 @@ def SVM(submit):
 
 def all_gamma(array):
     for i in range(len(array)):
-        array[i] = exposure.adjust_gamma(array[i], 0.001)
+        array[i] = exposure.adjust_gamma(array[i], 1)
+    return array
+
+def EQ(array):
+    for i in range(len(array)):
+        array[i] = exposure.equalize_hist(array[i])
+        array[i] = equalize(array[i], disk(20))
     return array
 
 
@@ -451,5 +461,5 @@ def kfold(data, targets, identities, folds):
 if __name__ == "__main__":
     #knn()
     #semi_supervised()
-    SVM(True)
+    SVM(False)
     #model3(False)
