@@ -269,7 +269,7 @@ def KNN(submit):
     labeled_images_data = spio.loadmat("labeled_images.mat")
     unlabeled_images_data = spio.loadmat("unlabeled_images.mat")
     public_test_data = spio.loadmat("public_test_images.mat")
-    faces_test = public_test_data.get("hidden_images")
+    faces_test = public_test_data.get("public_test_images")
     unlabeled_faces = unlabeled_images_data.get("unlabeled_images")
     labels = labeled_images_data.get("tr_labels")
     identities = labeled_images_data.get("tr_identity")
@@ -283,7 +283,43 @@ def KNN(submit):
     labels_s = labels.squeeze()
 
 
-    master_array = load_object("master")
+    small_faces = faces
+    small_identities = identities
+    small_labels = labels_s
+    aug = np.column_stack((small_identities, small_labels,small_faces))
+
+    one_array = np.array(filter(lambda row: row[1]==1, aug))
+    two_array = np.array(filter(lambda row: row[1]==2, aug))
+    three_array = np.array(filter(lambda row: row[1]==3, aug))
+    four_array = np.array(filter(lambda row: row[1]==4, aug))
+    five_array = np.array(filter(lambda row: row[1]==5, aug))
+    six_array = np.array(filter(lambda row: row[1]==6, aug))
+    seven_array = np.array(filter(lambda row: row[1]==7, aug))
+
+    label_arrays = [one_array, two_array, three_array, four_array, five_array, six_array, seven_array]
+
+    for j in range(len(label_arrays)):
+        label_arrays[j] = label_arrays[j][label_arrays[j][:,0].argsort()[::-1]]
+
+
+    master_array = aug.copy()
+
+    #save_object(label_arrays, "label_arrays")
+    # label_arrays = load_object("label_arrays")
+
+    i = 0
+    while i < len(faces):
+        for j in range(len(label_arrays)):
+            if i < len(faces) and len(label_arrays[j]>0):
+                if(j==6):
+                     master_array[i] = label_arrays[j][0]
+                     label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
+                     i = i+1
+                master_array[i] = label_arrays[j][0]
+                label_arrays[j] = np.delete(label_arrays[j] , 0, axis=0)
+                #label_arrays[j] = np.zeros(3)
+                i = i+1
+
 
     master_ident = master_array[:,0]
     master_array = np.delete(master_array,0,1)
@@ -297,7 +333,7 @@ def KNN(submit):
     # print("-   Performing PCA reduction    -")
     # pca = RandomizedPCA(n_components=n_eigenfaces, whiten=True).fit(unlabeled_faces)
     # save_object(pca, "pca")
-    pca = load_object("pca")
+    # pca = load_object("pca")
     # #train_data = pca.transform(train_data)
     # #test_data = pca.transform(test_data)
     # print("-   Finished PCA reduction    -")
