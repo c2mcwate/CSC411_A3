@@ -414,58 +414,6 @@ def Logit(submit):
 
 
 
-    # PUT YOUR PROCESSING HERE
-    # #Reshape
-    # master_faces = preprocessing.normalize(master_faces, norm='l2')
-    # faces_test = preprocessing.normalize(faces_test, norm='l2')
-    # unlabeled_faces =preprocessing.normalize(unlabeled_faces, norm='l2')
-    # unlabeled_faces= unlabeled_faces.reshape(len(unlabeled_faces), 32, 32)
-    # master_faces = master_faces.reshape(len(master_faces), 32, 32)
-    # faces_test = faces_test.reshape(len(faces_test), 32, 32)
-    # plt.subplot(122),plt.imshow(faces_test[3], cmap='gray')
-    # plt.title('Normal'), plt.xticks([]), plt.yticks([])
-    # #plt.show()
-    #
-    #
-    #
-    # #Gamma correction
-    # master_faces = all_gamma(master_faces)
-    # faces_test = all_gamma(faces_test)
-    # unlabeled_faces = all_gamma(unlabeled_faces)
-    #
-    # plt.subplot(122),plt.imshow(faces_test[3], cmap='gray')
-    # plt.title('Gamma correction'), plt.xticks([]), plt.yticks([])
-    # #plt.show()
-    #
-    # # #Dog filter
-    # # master_faces -= cv2.GaussianBlur(master_faces, (3, 3),1)
-    # # faces_test -= cv2.GaussianBlur(faces_test, (3, 3),1)
-    # # plt.subplot(122),plt.imshow(faces_test[1], cmap='gray')
-    # # plt.title('Dog Filter'), plt.xticks([]), plt.yticks([])
-    # # plt.show()
-    #
-    # # #Rescale intensity
-    # # master_faces = testing(master_faces)
-    # # faces_test = testing(faces_test)
-    # #
-    # # plt.subplot(122),plt.imshow(faces_test[15], cmap='gray')
-    # # plt.title('Rescale'), plt.xticks([]), plt.yticks([])
-    # # plt.show()
-    #
-    # #Equalization of variance TODO
-    # master_faces = EQ(master_faces)
-    # faces_test = EQ(faces_test)
-    # unlabeled_faces = EQ(unlabeled_faces)
-    #
-    # plt.subplot(122),plt.imshow(faces_test[3], cmap='gray')
-    # plt.title('Equalization'), plt.xticks([]), plt.yticks([])
-    # #plt.show()
-    #
-    # #Reshape
-    # master_faces = master_faces.reshape((master_faces.shape[0], -1))
-    # faces_test = faces_test.reshape((faces_test.shape[0], -1))
-    # unlabeled_faces = unlabeled_faces.reshape((unlabeled_faces.shape[0], -1))
-
 
     n_eigenfaces = 121
 
@@ -478,40 +426,57 @@ def Logit(submit):
 
     print('PCA captures {:.2f} percent of the variance in the dataset'.format(pca.explained_variance_ratio_.sum() * 100))
 
-    tuples = kfold(master_faces,master_labels,master_ident, 13)
-    success_rates_train = []
-    success_rate_valid = []
-    if not submit:
-        for tuple in tuples:
-            train_data, test_data, train_targets, test_targets, train_ident, test_ident= tuple
-            # train_data = pca.transform(train_data)
-            # test_data = pca.transform(test_data)
-            model = linear_model.LogisticRegression(penalty='l2', C=0.5, max_iter=10000)
-            model.fit(train_data, train_targets)
+    c_value_success_valid = np.zeros(5)
+    c_value_success_train = np.zeros(5)
+    c_values = [0.0005, 0.005, 0.05, 0.5, 5]
+
+    for i in range(len(c_values)):
+
+        tuples = kfold(master_faces,master_labels,master_ident, 13)
+        success_rates_train = []
+        success_rate_valid = []
+        if not submit:
+            for tuple in tuples:
+                train_data, test_data, train_targets, test_targets, train_ident, test_ident= tuple
+                # train_data = pca.transform(train_data)
+                # test_data = pca.transform(test_data)
+                model = linear_model.LogisticRegression(penalty='l2', C=c_values[i], max_iter=10000)
+                model.fit(train_data, train_targets)
 
 
-            #Train
-            score = model.score(train_data, train_targets)
-            valid_score = model.score(test_data, test_targets)
+                #Train
+                score = model.score(train_data, train_targets)
+                valid_score = model.score(test_data, test_targets)
 
-            print("Training :")
-            print(score)
-            success_rates_train.append(score)
+                # print("Training :")
+                # print(score)
+                success_rates_train.append(score)
 
-            #Validation
-            print("Validation :")
-            print(valid_score)
-            success_rate_valid.append(valid_score)
+                # #Validation
+                # print("Validation :")
+                # print(valid_score)
+                success_rate_valid.append(valid_score)
 
-        print("Training rates :")
-        print(success_rates_train)
-        print("Training average :")
-        print(np.average(success_rates_train))
-
-        print("Validation rates :")
-        print(success_rate_valid)
-        print("Validation average :")
-        print(np.average(success_rate_valid))
+            print("Training rates :")
+            print(success_rates_train)
+            print("Training average :")
+            print(np.average(success_rates_train))
+            c_value_success_train[i] = np.average(success_rates_train)
+            print("Validation rates :")
+            print(success_rate_valid)
+            print("Validation average :")
+            print(np.average(success_rate_valid))
+            c_value_success_valid[i] = np.average(success_rate_valid)
+    #pd.plot_digits(train_data)
+    plot.figure(1)
+    plot.plot(c_values, c_value_success_valid, label="Validation", marker="o")
+    plot.plot(c_values, c_value_success_train, label="Training", marker="o")
+    plot.xlabel("c value")
+    plot.ylabel("Classification Success Rate")
+    plot.legend()
+    #plot.show()
+    plot.title('C value vs Success rate ( Logistic Regression)')
+    plot.savefig("logit_graph", ext="png", close=False, verbose=True)
     if submit:
         classification = linear_model.LogisticRegression(penalty='l2', C=0.5, max_iter=10000)
         master_faces = pca.transform(master_faces)
@@ -575,6 +540,6 @@ def kfold(data, targets, identities, folds):
 if __name__ == "__main__":
     #KNN(True)
     #semi_supervised()
-    SVM(True)
+    #SVM(True)
 
-    #Logit(True)
+    Logit(False)
